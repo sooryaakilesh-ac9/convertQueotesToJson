@@ -13,7 +13,7 @@ import (
 
 // Quote represents the structure for each quote in the JSON output
 type Quote struct {
-	ID       int64   `json:"id"`
+	ID       int64    `json:"id"`
 	Text     string   `json:"text"`
 	Author   string   `json:"author,omitempty"`
 	Year     int      `json:"year,omitempty"`
@@ -99,10 +99,10 @@ func ReadExcelFile(file *excelize.File) error {
 
 		// Create a Quote struct with data from the row
 		quote := Quote{
-			ID:       int64(i),  // Generate an ID
-			Text:     row[1],                // Column 1 as the quote text
-			Tags:     tags,                  // Column 0 as tags
-			Language: "en-US",               // Default language
+			ID:       int64(i), // Generate an ID
+			Text:     row[1],   // Column 1 as the quote text
+			Tags:     tags,     // Column 0 as tags
+			Language: "en-US",  // Default language
 		}
 
 		quotes = append(quotes, quote)
