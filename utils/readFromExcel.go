@@ -56,17 +56,22 @@ func ReadQuotesFromExcel(fileNameValue string) error {
 
 	file, err := OpenExcelFile(fileName)
 	if err != nil {
-		log.Fatalf("Error opening Excel file: %v", err)
+		log.Printf("Error opening Excel file: %v", err)
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("Error closing the Excel file: %v", err)
+		}
+	}()
 
 	return ReadExcelFile(file)
 }
 
-// ReadExcelFile reads data from the first sheet, processes it, and outputs JSON
+// ReadExcelFile reads data from the first sheet, processes it in batches, and outputs accumulated JSON
 func ReadExcelFile(file *excelize.File) error {
-	var quotes []Quote
+	var accumulatedQuotes []Quote
+	batchSize := 100 // Set your desired batch size
 
 	// Get all sheet names
 	sheets := file.GetSheetList()
@@ -83,13 +88,15 @@ func ReadExcelFile(file *excelize.File) error {
 		return fmt.Errorf("unable to load cells: %w", err)
 	}
 
-	// Process each row and populate the Quote structs
+	// Process each row in batches
+	var batch []Quote
 	for i, row := range rows {
 		if i == 0 {
 			// Skip header row if present
 			continue
 		}
 		if len(row) < 2 {
+			log.Printf("Skipping row %d due to insufficient columns: %v", i, row)
 			continue // Skip rows with insufficient columns
 		}
 
@@ -105,29 +112,42 @@ func ReadExcelFile(file *excelize.File) error {
 			Language: "en-US",  // Default language
 		}
 
-		quotes = append(quotes, quote)
+		// Add quote to the current batch
+		batch = append(batch, quote)
+
+		// If batch size is reached, add the batch to the accumulated list
+		if len(batch) >= batchSize {
+			accumulatedQuotes = append(accumulatedQuotes, batch...)
+			batch = nil // Reset the batch
+		}
 	}
 
-	// Create metadata
+	// Add any remaining quotes from the last incomplete batch
+	if len(batch) > 0 {
+		accumulatedQuotes = append(accumulatedQuotes, batch...)
+	}
+
+	// Create metadata for the accumulated quotes
 	metadata := Metadata{
 		Version:     "1.0",
 		LastUpdated: time.Now().Format(time.RFC3339),
-		TotalQuotes: len(quotes),
+		TotalQuotes: len(accumulatedQuotes),
 		URL:         "path/to/file", // Set URL if available
 	}
 	metadata.Schema.Format = "JSON"
 	metadata.Schema.Encoding = "UTF-8"
 	metadata.Schema.FileType = "text"
 
-	// Combine quotes and metadata into the final structure
+	// Combine accumulated quotes and metadata into the final structure
 	quotesData := QuotesData{
-		Quotes:   quotes,
+		Quotes:   accumulatedQuotes,
 		Metadata: metadata,
 	}
 
-	// Write to JSON file
+	// Write the accumulated quotes to a JSON file
 	if err := WriteJSONToFile("quotes_output.json", quotesData); err != nil {
-		return fmt.Errorf("error writing JSON to file: %w", err)
+		log.Printf("Error writing JSON to file: %v", err)
+		return err
 	}
 
 	fmt.Println("JSON data successfully written to quotes_output.json")
