@@ -38,7 +38,6 @@ type Metadata struct {
 // QuotesData holds the entire JSON structure with quotes and metadata
 type QuotesData struct {
 	Quotes   []Quote  `json:"quotes"`
-	Metadata Metadata `json:"metadata"`
 }
 
 // OpenExcelFile opens the Excel file
@@ -141,13 +140,23 @@ func ReadExcelFile(file *excelize.File) error {
 	// Combine accumulated quotes and metadata into the final structure
 	quotesData := QuotesData{
 		Quotes:   accumulatedQuotes,
-		Metadata: metadata,
 	}
 
 	// Write the accumulated quotes to a JSON file
-	if err := WriteJSONToFile("quotes_output.json", quotesData); err != nil {
+	if err := WriteJSONToFile("quotes.json", quotesData); err != nil {
 		log.Printf("Error writing JSON to file: %v", err)
 		return err
+	}
+
+	// converting metadata to json encoding
+	jsonMetadata, err := json.MarshalIndent(metadata, "", " ")
+	if err != nil {
+		return fmt.Errorf("error marshalling metadata to JSON: %v", err)
+	}
+
+	// writing metadata json file
+	if err := os.WriteFile("quotesMetadata.json", jsonMetadata, 0644); err != nil {
+		return fmt.Errorf("error writing metadata.json %v", err)
 	}
 
 	fmt.Println("JSON data successfully written to quotes_output.json")

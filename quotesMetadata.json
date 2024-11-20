@@ -1,0 +1,11 @@
+{
+ "version": "1.0",
+ "lastUpdated": "2024-11-20T11:18:03+05:30",
+ "totalQuotes": 1240,
+ "url": "path/to/file",
+ "schema": {
+  "format": "JSON",
+  "encoding": "UTF-8",
+  "filetype": "text"
+ }
+}
